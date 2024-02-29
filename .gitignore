@@ -10,3 +10,7 @@ train1.py
 test1.py
 test2.py
 check_env.py
+baselines/
+Python-RVO2/
+.env
+My_Key.py
