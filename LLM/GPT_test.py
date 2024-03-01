@@ -1,5 +1,5 @@
 from openai import OpenAI
-import My_Key
+import LLM.My_Key as My_Key
 
 client = OpenAI(api_key=My_Key.key)
 
