@@ -5,9 +5,6 @@ import copy
 
 from crowd_sim.envs.utils.action import ActionRot, ActionXY
 from crowd_sim.envs.crowd_sim_var_num import CrowdSimVarNum
-from LLM.Prompt_generator import PromptGen
-import LLM.utils as llmutil
-from LLM.GPT_request import GPT
 
 
 class CrowdSimPred(CrowdSimVarNum):
@@ -26,7 +23,6 @@ class CrowdSimPred(CrowdSimVarNum):
         super(CrowdSimPred, self).__init__()
         self.pred_method = None
         self.cur_human_states = None
-        self.gpt = GPT()
 
     def configure(self, config):
         """read the config to the environment variables"""
@@ -99,7 +95,7 @@ class CrowdSimPred(CrowdSimVarNum):
             self.get_num_human_in_fov()
         )
 
-        ob["robot_node"] = self.robot.get_full_state_list_noV()
+        ob["robot_node"] = self.robot.get_full_state_list()
 
         self.prev_human_pos = copy.deepcopy(self.last_human_states)
         self.update_last_human_states(self.human_visibility, reset=reset)
@@ -205,9 +201,7 @@ class CrowdSimPred(CrowdSimVarNum):
             if done:
                 self.episodeRecoder.robot_goal.append([self.robot.gx, self.robot.gy])
                 self.episodeRecoder.saveEpisode(self.case_counter["test"])
-        # copy the human and robot last states
-        prev_human_state = llmutil.extract_positions_and_velocities(self.humans)
-        prev_robot_state = llmutil.extract_positions_and_velocities(self.robot)
+
         # apply action and update all agents
         self.robot.step(action)
         for i, human_action in enumerate(human_actions):
@@ -274,14 +268,6 @@ class CrowdSimPred(CrowdSimVarNum):
                 if norm((human.gx - human.px, human.gy - human.py)) < human.radius:
                     self.humans[i] = self.generate_circle_crossing_human()
                     self.humans[i].id = i
-
-        # TODO: SHB
-        human_state = llmutil.extract_positions_and_velocities(self.humans)
-        robot_state = llmutil.extract_positions_and_velocities(self.robot)
-        prompt = PromptGen.make_prompt(
-            human_state, prev_human_state, robot_state, prev_robot_state
-        )
-        self.gpt.ask(prompt)
 
         return ob, reward, done, info
 

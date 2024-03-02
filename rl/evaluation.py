@@ -4,6 +4,11 @@ import torch
 from crowd_sim.envs.utils.info import *
 
 
+from LLM.Prompt_generator import PromptGen
+import LLM.utils as llmutil
+from LLM.GPT_request import GPT
+
+
 def evaluate(
     actor_critic,
     eval_envs,
@@ -55,6 +60,12 @@ def evaluate(
 
     all_path_len = []
 
+    gpt = GPT()
+    human_state = None
+    robot_state = None
+    prev_human_state = None
+    prev_robot_state = None
+
     # to make it work with the virtualenv in sim2real
     if hasattr(eval_envs.venv, "envs"):
         baseEnv = eval_envs.venv.envs[0].env
@@ -91,12 +102,46 @@ def evaluate(
             if not done:
                 global_time = baseEnv.global_time
 
-            # if the vec_pretext_normalize.py wrapper is used, send the predicted traj to env
+            ################################# Do every thing here so we can use the render later
+            # TODO: SHB
+
+            _robot_full_state = None
+            _humans_full_state = None
+
             if args.env_name == "CrowdSimPredRealGST-v0" and config.env.use_wrapper:
                 out_pred = obs["spatial_edges"][:, :, 2:].to("cpu").numpy()
                 # send manager action to all processes
-                ack = eval_envs.talk2Env(out_pred)
-                assert all(ack)
+                (ack, _robot_full_state, _humans_full_state) = eval_envs.envs[
+                    0
+                ].talk2Env(out_pred[0])
+
+            human_state = llmutil.extract_positions_and_velocities(_humans_full_state)
+            robot_state = llmutil.extract_positions_and_velocities(_robot_full_state)
+
+            if stepCounter > 1:
+
+                # 20 X 5
+                humans_pred_traj_pose = llmutil.get_pred_traj_pose(
+                    out_pred, obs["robot_node"][0, 0, :2].cpu().numpy()
+                )
+
+                # print(humans_pred_traj_pose)
+                prompt = PromptGen.make_prompt(
+                    human_state,
+                    prev_human_state,
+                    robot_state,
+                    prev_robot_state,
+                    humans_pred_traj_pose,
+                )
+
+                print(prompt)
+                # gpt.ask(prompt)
+
+            prev_human_state = human_state.copy()
+            prev_robot_state = robot_state.copy()
+
+            ###################################
+
             # render
             if visualize:
                 eval_envs.render()

@@ -100,7 +100,11 @@ class CrowdSimPredRealGST(CrowdSimPred):
         :return: True means received
         """
         self.gst_out_traj = data
-        return True
+
+        humans_state_list = []
+        for i in range(len(self.humans)):
+            humans_state_list.append(self.humans[i].get_full_state_list())
+        return True, self.robot.get_full_state_list(), humans_state_list
 
     # reset = True: reset calls this function; reset = False: step calls this function
     def generate_ob(self, reset, sort=False):
