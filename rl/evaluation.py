@@ -104,10 +104,11 @@ def evaluate(
                 global_time = baseEnv.global_time
 
             ################################# Do every thing here so we can use the render later
-            # TODO: SHB
+            # TODO: Ours
 
             _robot_full_state = None
             _humans_full_state = None
+
 
             if args.env_name == "CrowdSimPredRealGST-v0" and config.env.use_wrapper:
                 out_pred = obs["spatial_edges"][:, :, 2:].to("cpu").numpy()
@@ -116,10 +117,8 @@ def evaluate(
                     0
                 ].talk2Env(out_pred[0])
 
-            human_state = llmutil.extract_positions_and_velocities(_humans_full_state)
-            print(human_state)
-            print("#######################################")
-            robot_state = llmutil.extract_positions_and_velocities(_robot_full_state)
+            human_state, human_goal = llmutil.extract_positions_and_velocities(_humans_full_state)
+            robot_state, robot_goal = llmutil.extract_positions_and_velocities(_robot_full_state)
 
             if stepCounter > 1:
 
@@ -128,7 +127,25 @@ def evaluate(
                     out_pred, obs["robot_node"][0, 0, :2].cpu().numpy()
                 )
 
-                # print(humans_pred_traj_pose)
+                # Get indices of True values in the mask
+                mask_indices = obs['visible_masks'].nonzero(as_tuple=True)[1]
+                # Use the indices to select the corresponding elements from 'Human'
+                masked_humans = [human_state[i] for i in mask_indices]
+                masked_trajectories = [humans_pred_traj_pose[i] for i in mask_indices]
+
+                print("Visible Humans: ")
+                print(mask_indices)
+                print("#######################################")
+                # print("Robot: ")
+                # print(robot_state)
+                # print("#######################################")
+                print("Human: ")
+                print(masked_humans)
+                print("#######################################")
+                print("Trajectory: ")
+                print(masked_trajectories)
+                print("#######################################")
+
                 prompt = PromptGen.make_prompt(
                     human_state,
                     prev_human_state,
@@ -149,7 +166,7 @@ def evaluate(
             if visualize:
                 eval_envs.render()
 
-            keyboard.wait("space")
+            # keyboard.wait("space")
             # Obser reward and next obs
             obs, rew, done, infos = eval_envs.step(action)
 

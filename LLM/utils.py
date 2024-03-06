@@ -57,9 +57,9 @@ def get_pred_traj_pose(gst_out_traj, robot_pose, human_num=20, predict_steps=5):
             for j in range(predict_steps):
                 try:
                     this_human_pred_traj.append(
-                        (
-                            gst_out_traj[0][i, (2 * j) : (2 * j + 2)] + robot_pose
-                        ).tolist()
+                        [
+                            round(x, 2) for x in (gst_out_traj[0][i, (2 * j): (2 * j + 2)] + robot_pose).tolist()
+                        ]
                     )
                 except:
                     pass
