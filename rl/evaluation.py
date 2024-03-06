@@ -133,18 +133,18 @@ def evaluate(
                 masked_humans = [human_state[i] for i in mask_indices]
                 masked_trajectories = [humans_pred_traj_pose[i] for i in mask_indices]
 
-                print("Visible Humans: ")
-                print(mask_indices)
-                print("#######################################")
+                # print("Visible Humans: ")
+                # print(mask_indices)
+                # print("#######################################")
                 # print("Robot: ")
                 # print(robot_state)
                 # print("#######################################")
-                print("Human: ")
-                print(masked_humans)
-                print("#######################################")
-                print("Trajectory: ")
-                print(masked_trajectories)
-                print("#######################################")
+                # print("Human: ")
+                # print(masked_humans)
+                # print("#######################################")
+                # print("Trajectory: ")
+                # print(masked_trajectories)
+                # print("#######################################")
 
                 prompt = PromptGen.make_prompt(
                     human_state,
@@ -152,6 +152,7 @@ def evaluate(
                     robot_state,
                     prev_robot_state,
                     humans_pred_traj_pose,
+                    mask_indices
                 )
 
                 # print(prompt)
