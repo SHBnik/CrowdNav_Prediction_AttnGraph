@@ -7,6 +7,7 @@ from crowd_sim.envs.utils.info import *
 from LLM.Prompt_generator import PromptGen
 import LLM.utils as llmutil
 from LLM.GPT_request import GPT
+import keyboard
 
 
 def evaluate(
@@ -116,6 +117,8 @@ def evaluate(
                 ].talk2Env(out_pred[0])
 
             human_state = llmutil.extract_positions_and_velocities(_humans_full_state)
+            print(human_state)
+            print("#######################################")
             robot_state = llmutil.extract_positions_and_velocities(_robot_full_state)
 
             if stepCounter > 1:
@@ -134,7 +137,7 @@ def evaluate(
                     humans_pred_traj_pose,
                 )
 
-                print(prompt)
+                # print(prompt)
                 # gpt.ask(prompt)
 
             prev_human_state = human_state.copy()
@@ -146,6 +149,7 @@ def evaluate(
             if visualize:
                 eval_envs.render()
 
+            keyboard.wait("space")
             # Obser reward and next obs
             obs, rew, done, infos = eval_envs.step(action)
 

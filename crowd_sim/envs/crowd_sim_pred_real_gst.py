@@ -101,9 +101,11 @@ class CrowdSimPredRealGST(CrowdSimPred):
         """
         self.gst_out_traj = data
 
-        humans_state_list = []
+        humans_state_list = [None] * 20
         for i in range(len(self.humans)):
-            humans_state_list.append(self.humans[i].get_full_state_list())
+            humans_state_list[self.humans[i].id] = (
+                self.humans[i].get_full_state_list().copy()
+            )
         return True, self.robot.get_full_state_list(), humans_state_list
 
     # reset = True: reset calls this function; reset = False: step calls this function
@@ -306,7 +308,11 @@ class CrowdSimPredRealGST(CrowdSimPred):
                 # label numbers on each human
                 # plt.text(self.humans[i].px - 0.1, self.humans[i].py - 0.1, str(self.humans[i].id), color='black', fontsize=12)
                 plt.text(
-                    self.humans[i].px, self.humans[i].py, i, color="black", fontsize=12
+                    self.humans[i].px,
+                    self.humans[i].py,
+                    str(self.humans[i].id) + "," + str(i),
+                    color="black",
+                    fontsize=12,
                 )
 
         # plot predicted human positions
