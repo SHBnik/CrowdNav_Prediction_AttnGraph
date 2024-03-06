@@ -9,6 +9,16 @@ import LLM.utils as llmutil
 from LLM.GPT_request import GPT
 
 
+def get_shape(lst):
+    if not isinstance(lst, list):  # Base case: not a list
+        return []
+    if not lst:  # Empty list
+        return [0]
+
+    # Recursive case: get shape of first element and prepend current level's length
+    return [len(lst)] + get_shape(lst[0])
+
+
 def evaluate(
     actor_critic,
     eval_envs,
@@ -102,9 +112,24 @@ def evaluate(
             if not done:
                 global_time = baseEnv.global_time
 
-            ################################# Do every thing here so we can use the render later
-            # TODO: SHB
+            # # if the vec_pretext_normalize.py wrapper is used, send the predicted traj to env
+            # if args.env_name == 'CrowdSimPredRealGST-v0' and config.env.use_wrapper:
+            #     out_pred = obs['spatial_edges'][:, :, 2:].to('cpu').numpy()
+            #     # send manager action to all processes
+            #     ack = eval_envs.talk2Env(out_pred)
+            #     assert all(ack)
+            # # render
+            # if visualize:
+            #     eval_envs.render()
 
+            ################################# Do every thing here so we can use the render later
+            # print(obs['robot_node'])
+            # print(action)
+            # print("##########################")
+            # print(eval_envs.process_obs_rew(obs, False))
+            # print(obs['spatial_edges'])
+            # print(obs['robot_node'])
+            # print("##########################")
             _robot_full_state = None
             _humans_full_state = None
 
@@ -114,9 +139,19 @@ def evaluate(
                 (ack, _robot_full_state, _humans_full_state) = eval_envs.envs[
                     0
                 ].talk2Env(out_pred[0])
-
-            human_state = llmutil.extract_positions_and_velocities(_humans_full_state)
-            robot_state = llmutil.extract_positions_and_velocities(_robot_full_state)
+                # print("Out Pred: ", out_pred.shape)
+                # print(out_pred)
+                # print("##########################")
+                # print("ACK: ", get_shape(ack))
+                # print(ack)
+                # print("##########################")
+                # print("Human State: ", get_shape(_humans_full_state))
+                # print(_humans_full_state)
+                # print("##########################")
+                # print("Robot State: ", get_shape(_robot_full_state))
+                # print(_robot_full_state)
+            human_state, human_goal = llmutil.extract_positions_and_velocities(_humans_full_state)
+            robot_state, robot_goal = llmutil.extract_positions_and_velocities(_robot_full_state)
 
             if stepCounter > 1:
 
@@ -125,6 +160,17 @@ def evaluate(
                     out_pred, obs["robot_node"][0, 0, :2].cpu().numpy()
                 )
 
+                print("Human: ")
+                print(human_state)
+                print(human_goal)
+                print("##########################")
+                print("Robot: ")
+                print(robot_state)
+                print(robot_goal)
+                print("##########################")
+                # print("trajectory: ")
+                # print(humans_pred_traj_pose)
+                # print("##########################")
                 # print(humans_pred_traj_pose)
                 prompt = PromptGen.make_prompt(
                     human_state,
@@ -133,8 +179,9 @@ def evaluate(
                     prev_robot_state,
                     humans_pred_traj_pose,
                 )
-
-                print(prompt)
+                # print("#####################")
+                # print(prompt)
+                # print("#####################")
                 # gpt.ask(prompt)
 
             prev_human_state = human_state.copy()

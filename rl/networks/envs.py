@@ -201,7 +201,7 @@ class VecPyTorch(VecEnvWrapper):
         obs = self.venv.reset()
         if isinstance(obs, dict):
             for key in obs:
-                obs[key]=torch.from_numpy(obs[key]).to(self.device)
+                obs[key] = torch.from_numpy(obs[key]).to(self.device)
         else:
             obs = torch.from_numpy(obs).float().to(self.device)
         return obs
@@ -269,7 +269,7 @@ class VecPyTorchFrameStack(VecEnvWrapper):
 
         if device is None:
             device = torch.device('cpu')
-        self.stacked_obs = torch.zeros((venv.num_envs, ) +
+        self.stacked_obs = torch.zeros((venv.num_envs,) +
                                        low.shape).to(device)
 
         observation_space = gym.spaces.Box(
