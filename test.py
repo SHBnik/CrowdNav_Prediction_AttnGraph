@@ -120,8 +120,8 @@ def main():
         fig, ax = plt.subplots(figsize=(7, 7))
         ax.set_xlim(-6.5, 6.5)  # 6
         ax.set_ylim(-6.5, 6.5)
-        ax.axes.xaxis.set_visible(False)
-        ax.axes.yaxis.set_visible(False)
+        ax.axes.xaxis.set_visible(True)
+        ax.axes.yaxis.set_visible(True)
         # ax.set_xlabel('x(m)', fontsize=16)
         # ax.set_ylabel('y(m)', fontsize=16)
         plt.ion()

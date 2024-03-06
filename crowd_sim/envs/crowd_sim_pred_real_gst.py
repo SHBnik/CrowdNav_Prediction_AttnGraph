@@ -310,7 +310,7 @@ class CrowdSimPredRealGST(CrowdSimPred):
                 plt.text(
                     self.humans[i].px,
                     self.humans[i].py,
-                    str(self.humans[i].id) + "," + str(i),
+                    str(self.humans[i].id),
                     color="black",
                     fontsize=12,
                 )
@@ -328,8 +328,20 @@ class CrowdSimPredRealGST(CrowdSimPred):
                         color="tab:orange",
                         linewidth=1.5,
                     )
-                    # circle = plt.Circle(np.array([robotX, robotY]),
-                    #                     self.humans[i].radius, fill=False)
+                    if j == 4:
+                        x, y = self.gst_out_traj[i, (2 * j) : (2 * j + 2)] + np.array(
+                            [robotX, robotY]
+                        )
+                        plt.text(
+                            x,
+                            y,
+                            str(self.humans[i].id),
+                            color="black",
+                            fontsize=5,
+                        )
+                    # circle = plt.Circle(
+                    #     np.array([robotX, robotY]), self.humans[i].radius, fill=False
+                    # )
                     ax.add_artist(circle)
                     artists.append(circle)
 
