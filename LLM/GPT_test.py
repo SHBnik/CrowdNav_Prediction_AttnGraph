@@ -3,9 +3,8 @@ import LLM.My_Key as My_Key
 
 client = OpenAI(api_key=My_Key.key)
 
-
 response = client.chat.completions.create(
-    model="gpt-3.5-turbo-0125",
+    model="text-davinci-002",  # Specify LLMA model here
     response_format={"type": "json_object"},
     messages=[
         {
