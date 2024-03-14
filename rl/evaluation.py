@@ -62,10 +62,6 @@ def evaluate(
     all_path_len = []
 
     gpt = GPT()
-    human_state = None
-    robot_state = None
-    prev_human_state = None
-    prev_robot_state = None
 
     # to make it work with the virtualenv in sim2real
     if hasattr(eval_envs.venv, "envs"):
@@ -86,6 +82,12 @@ def evaluate(
         path_len = 0.0
         too_close = 0.0
         last_pos = obs["robot_node"][0, 0, :2].cpu().numpy()
+        _action = torch.zeros([1, 2], device=device)
+
+        human_state = None
+        robot_state = None
+        prev_human_state = None
+        prev_robot_states = []
 
         while not done:
             stepCounter = stepCounter + 1
@@ -152,31 +154,36 @@ def evaluate(
 
                 print("Visible Humans: ")
                 print(mask_indices)
-                print("#######################################")
+                # print("#######################################")
                 # print("Robot: ")
                 # print(robot_state)
                 # print("#######################################")
-                print("Human: ")
-                print(masked_humans)
-                print("#######################################")
-                print("Trajectory: ")
-                print(reordered_masked_trajectories)
-                print("#######################################")
-
+                # print("Human: ")
+                # print(masked_humans)
+                # print("#######################################")
+                # print("Trajectory: ")
+                # print(reordered_masked_trajectories)
+                # print("#######################################")
+                # print(robot_goal)
                 prompt = PromptGen.make_prompt(
                     mask_indices,
                     human_state,
                     prev_human_state,
                     robot_state,
-                    prev_robot_state,
+                    prev_robot_states,
                     reordered_masked_trajectories,
+                    robot_goal,
                 )
 
                 # print(prompt)
-                gpt.ask(prompt)
+                resp = gpt.ask(prompt)
+                print(f"gpt resp : {resp}")
+                _action = llmutil.translate_action(resp)
+                # print("actions")
+                # print(action, _action)
 
             prev_human_state = human_state.copy()
-            prev_robot_state = robot_state.copy()
+            prev_robot_states.append(robot_state.copy())
 
             ###################################
 
@@ -186,7 +193,7 @@ def evaluate(
 
             # keyboard.wait("space")
             # Obser reward and next obs
-            obs, rew, done, infos = eval_envs.step(action)
+            obs, rew, done, infos = eval_envs.step(_action)
 
             # record the info for calculating testing metrics
             rewards.append(rew)
@@ -238,6 +245,7 @@ def evaluate(
         else:
             raise ValueError("Invalid end signal from environment")
 
+        exit()
     # all episodes end
     success_rate = success / test_size
     collision_rate = collision / test_size

@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import torch
 
 
 def extract_positions_and_velocities(list):
@@ -68,3 +69,16 @@ def generate_traj_mask(visible_humans_state, robot_state):
         range(len(visible_humans_state)), key=lambda i: distances[i]
     )
     return sorted_indices
+
+
+def translate_action(degree, speed=19):
+    if degree == -500:
+        return torch.tensor([[0, 0]])
+    # Convert the degree to radians
+    radian = math.radians(degree)
+
+    # Calculate the velocity components
+    vx = speed * torch.cos(torch.tensor(radian))
+    vy = speed * torch.sin(torch.tensor(radian))
+
+    return torch.tensor([[vx, vy]])
