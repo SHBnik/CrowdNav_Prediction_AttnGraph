@@ -86,6 +86,7 @@ def evaluate(
         path_len = 0.0
         too_close = 0.0
         last_pos = obs["robot_node"][0, 0, :2].cpu().numpy()
+        stat = None
 
         while not done:
             stepCounter = stepCounter + 1
@@ -103,65 +104,52 @@ def evaluate(
             if not done:
                 global_time = baseEnv.global_time
 
-            ################################# Do every thing here so we can use the render later
-            # TODO: Ours
 
-            _robot_full_state = None
-            _humans_full_state = None
+            ##### Get Info
+                _robot_full_state = None
+                _humans_full_state = None
+                # stat = None
 
+                if args.env_name == "CrowdSimPredRealGST-v0" and config.env.use_wrapper:
+                    out_pred = obs["spatial_edges"][:, :, 2:].to("cpu").numpy()
+                    # send manager action to all processes
+                    (ack, _robot_full_state, _humans_full_state) = eval_envs.envs[
+                        0
+                    ].talk2Env(out_pred[0])
 
-            if args.env_name == "CrowdSimPredRealGST-v0" and config.env.use_wrapper:
-                out_pred = obs["spatial_edges"][:, :, 2:].to("cpu").numpy()
-                # send manager action to all processes
-                (ack, _robot_full_state, _humans_full_state) = eval_envs.envs[
-                    0
-                ].talk2Env(out_pred[0])
-
-            human_state, human_goal = llmutil.extract_positions_and_velocities(_humans_full_state)
-            robot_state, robot_goal = llmutil.extract_positions_and_velocities(_robot_full_state)
-
-            if stepCounter > 1:
-
-                # 20 X 5
-                humans_pred_traj_pose = llmutil.get_pred_traj_pose(
-                    out_pred, obs["robot_node"][0, 0, :2].cpu().numpy()
+                human_state, human_goal = llmutil.extract_positions_and_velocities(
+                    _humans_full_state
+                )
+                robot_state, robot_goal = llmutil.extract_positions_and_velocities(
+                    _robot_full_state
                 )
 
-                # Get indices of True values in the mask
-                mask_indices = obs['visible_masks'].nonzero(as_tuple=True)[1]
-                # Use the indices to select the corresponding elements from 'Human'
-                masked_humans = [human_state[i] for i in mask_indices]
-                masked_trajectories = [humans_pred_traj_pose[i] for i in mask_indices]
+                if stepCounter > 1:
+                    # 20 X 5
+                    humans_pred_traj_pose = llmutil.get_pred_traj_pose(
+                        out_pred, obs["robot_node"][0, 0, :2].cpu().numpy()
+                    )
 
-                # print("Visible Humans: ")
-                # print(mask_indices)
-                # print("#######################################")
-                # print("Robot: ")
-                # print(robot_state)
-                # print("#######################################")
-                # print("Human: ")
-                # print(masked_humans)
-                # print("#######################################")
-                # print("Trajectory: ")
-                # print(masked_trajectories)
-                # print("#######################################")
+                    # Get indices of True values in the mask
+                    mask_indices = obs["visible_masks"].nonzero(as_tuple=True)[1].tolist()
+                    # Use the indices to select the corresponding elements from 'Human'
+                    masked_humans = [human_state[i] for i in mask_indices]
+                    # indice is based on distance to robot
+                    fuckedup_indices = llmutil.generate_traj_mask(
+                        masked_humans, robot_state
+                    )
 
-                prompt = PromptGen.make_prompt(
-                    human_state,
-                    prev_human_state,
-                    robot_state,
-                    prev_robot_state,
-                    humans_pred_traj_pose,
-                    mask_indices
-                )
+                    masked_trajectories = [
+                        humans_pred_traj_pose[i] for i in range(len(mask_indices))
+                    ]
 
-                # print(prompt)
-                # gpt.ask(prompt)
+                    reordered_masked_trajectories = [None] * len(masked_trajectories)
 
-            prev_human_state = human_state.copy()
-            prev_robot_state = robot_state.copy()
-
-            ###################################
+                    for original_index, new_index in enumerate(fuckedup_indices):
+                        reordered_masked_trajectories[new_index] = masked_trajectories[
+                            original_index
+                        ]
+            #####
 
             # render
             if visualize:
@@ -169,7 +157,58 @@ def evaluate(
 
             # keyboard.wait("space")
             # Obser reward and next obs
-            obs, rew, done, infos = eval_envs.step(action)
+            if stat != None:
+                if stat == False:
+                    obs, rew, done, infos = eval_envs.step(action)
+                else:
+                    action = torch.zeros([1, 2], device=device)
+                    obs, rew, done, infos = eval_envs.step(action)
+            else:
+                obs, rew, done, infos = eval_envs.step(action)
+
+
+
+            ################################# Do every thing here so we can use the render later
+            # TODO: Ours
+            # TODO: Generate action by LLM and compare
+            # TODO: Generate alarm based on action and change planning
+
+
+            # print("Visible Humans: ")
+            # print(mask_indices)
+            # print("#######################################")
+            # print("Robot: ")
+            # print(robot_state)
+            # print("#######################################")
+            # print("Human: ")
+            # print(masked_humans)
+            # print("#######################################")
+            # print("Trajectory: ")
+            # print(reordered_masked_trajectories)
+            # print("#######################################")
+            # print("action: ")
+            # print(action[0]*0.25)
+            # print(robot_state)
+            # print(robot_state[0][0] + action[0][0]*0.25, robot_state[0][1] + action[0][1]*0.25)
+            # print("#######################################")
+            if stepCounter > 1:
+                prompt = PromptGen.make_prompt(
+                    mask_indices,
+                    human_state,
+                    prev_human_state,
+                    robot_state,
+                    prev_robot_state,
+                    reordered_masked_trajectories,
+                    [round(float(obs["robot_node"][0][0][0]), 2), round(float(obs["robot_node"][0][0][1]), 2)],
+                )
+
+                # print(prompt)
+                stat = gpt.ask(prompt)
+
+                prev_human_state = human_state.copy()
+                prev_robot_state = robot_state.copy()
+
+            ###################################
 
             # record the info for calculating testing metrics
             rewards.append(rew)
