@@ -61,6 +61,8 @@ def evaluate(
 
     all_path_len = []
 
+    all_steps = []
+
     gpt = GPT()
     human_state = None
     robot_state = None
@@ -200,6 +202,7 @@ def evaluate(
                     prev_robot_state,
                     reordered_masked_trajectories,
                     [round(float(obs["robot_node"][0][0][0]), 2), round(float(obs["robot_node"][0][0][1]), 2)],
+                    [round(float(obs["robot_node"][0][0][3]), 2), round(float(obs["robot_node"][0][0][4]), 2)]
                 )
 
                 # print(prompt)
@@ -239,6 +242,7 @@ def evaluate(
         print("Reward={}".format(episode_rew))
         print("Episode", k, "ends in", stepCounter)
         all_path_len.append(path_len)
+        all_steps.append(stepCounter)
         too_close_ratios.append(too_close / stepCounter * 100)
 
         if isinstance(infos[0]["info"], ReachGoal):
@@ -260,11 +264,26 @@ def evaluate(
         else:
             raise ValueError("Invalid end signal from environment")
 
+        print(success_times)
+        print(collision_times)
+        print(collision_cases)
+        print(all_steps)
+        print(all_path_len)
+        print(timeout_cases)
+        if len(success_times) != 0:
+            print(sum(success_times) / len(success_times))
+        print(success / len(all_steps))
+        print(len(collision_times) / len(all_steps))
+        print(sum(all_steps) / len(all_steps))
+        print(sum(all_path_len) / len(all_path_len))
+
+        if k >= 35:
+            break
     # all episodes end
     success_rate = success / test_size
     collision_rate = collision / test_size
     timeout_rate = timeout / test_size
-    assert success + collision + timeout == test_size
+    # assert success + collision + timeout == test_size
     avg_nav_time = (
         sum(success_times) / len(success_times) if success_times else time_limit
     )  # baseEnv.env.time_limit

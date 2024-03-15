@@ -3,7 +3,6 @@ import numpy as np
 
 from crowd_sim.envs.crowd_sim_pred import CrowdSimPred
 
-
 class CrowdSimPredRealGST(CrowdSimPred):
     """
     Same as CrowdSimPred, except that
@@ -23,6 +22,7 @@ class CrowdSimPredRealGST(CrowdSimPred):
 
         # to receive data from gst pred model
         self.gst_out_traj = None
+        self.i_frame = 1
 
     def set_robot(self, robot):
         """set observation space and action space"""
@@ -345,6 +345,8 @@ class CrowdSimPredRealGST(CrowdSimPred):
                     ax.add_artist(circle)
                     artists.append(circle)
 
+        # plt.savefig(f"framePlotsNormal/frame_{self.i_frame}.png")
+        # self.i_frame = self.i_frame + 1
         plt.pause(0.1)
         for item in artists:
             item.remove()  # there should be a better way to do this. For example,
