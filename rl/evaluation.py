@@ -8,6 +8,7 @@ from LLM.Prompt_generator import PromptGen
 import LLM.utils as llmutil
 from LLM.GPT_request import GPT
 import keyboard
+import math
 
 
 def evaluate(
@@ -64,10 +65,6 @@ def evaluate(
     all_steps = []
 
     gpt = GPT()
-    human_state = None
-    robot_state = None
-    prev_human_state = None
-    prev_robot_state = None
 
     # to make it work with the virtualenv in sim2real
     if hasattr(eval_envs.venv, "envs"):
@@ -89,6 +86,11 @@ def evaluate(
         too_close = 0.0
         last_pos = obs["robot_node"][0, 0, :2].cpu().numpy()
         stat = None
+        safe_direction = 0
+        human_state = None
+        robot_state = None
+        prev_human_state = None
+        prev_robot_state = None
 
         while not done:
             stepCounter = stepCounter + 1
@@ -106,8 +108,7 @@ def evaluate(
             if not done:
                 global_time = baseEnv.global_time
 
-
-            ##### Get Info
+                ##### Get Info
                 _robot_full_state = None
                 _humans_full_state = None
                 # stat = None
@@ -133,7 +134,9 @@ def evaluate(
                     )
 
                     # Get indices of True values in the mask
-                    mask_indices = obs["visible_masks"].nonzero(as_tuple=True)[1].tolist()
+                    mask_indices = (
+                        obs["visible_masks"].nonzero(as_tuple=True)[1].tolist()
+                    )
                     # Use the indices to select the corresponding elements from 'Human'
                     masked_humans = [human_state[i] for i in mask_indices]
                     # indice is based on distance to robot
@@ -151,11 +154,12 @@ def evaluate(
                         reordered_masked_trajectories[new_index] = masked_trajectories[
                             original_index
                         ]
+
             #####
 
             # render
             if visualize:
-                eval_envs.render()
+                eval_envs.envs[0].render([safe_direction, stat])
 
             # keyboard.wait("space")
             # Obser reward and next obs
@@ -163,18 +167,26 @@ def evaluate(
                 if stat == False:
                     obs, rew, done, infos = eval_envs.step(action)
                 else:
-                    action = torch.zeros([1, 2], device=device)
+                    if (
+                        math.dist(
+                            robot_state[0][0:2],
+                            [
+                                round(float(obs["robot_node"][0][0][3]), 2),
+                                round(float(obs["robot_node"][0][0][4]), 2),
+                            ],
+                        )
+                        > 2
+                    ):
+                        action = llmutil.translate_action(safe_direction)
+                    # action = torch.zeros([1, 2], device=device)
                     obs, rew, done, infos = eval_envs.step(action)
             else:
                 obs, rew, done, infos = eval_envs.step(action)
-
-
 
             ################################# Do every thing here so we can use the render later
             # TODO: Ours
             # TODO: Generate action by LLM and compare
             # TODO: Generate alarm based on action and change planning
-
 
             # print("Visible Humans: ")
             # print(mask_indices)
@@ -194,6 +206,15 @@ def evaluate(
             # print(robot_state[0][0] + action[0][0]*0.25, robot_state[0][1] + action[0][1]*0.25)
             # print("#######################################")
             if stepCounter > 1:
+                obstacles = []
+                for index, i in enumerate(mask_indices):
+                    obstacles.append(human_state[i][0:2])
+                    for j in range(len(reordered_masked_trajectories[index])):
+                        obstacles.append(reordered_masked_trajectories[index][j][0:2])
+                safe_direction = llmutil.calculate_safe_direction(
+                    robot_state, obstacles
+                )
+
                 prompt = PromptGen.make_prompt(
                     mask_indices,
                     human_state,
@@ -201,8 +222,14 @@ def evaluate(
                     robot_state,
                     prev_robot_state,
                     reordered_masked_trajectories,
-                    [round(float(obs["robot_node"][0][0][0]), 2), round(float(obs["robot_node"][0][0][1]), 2)],
-                    [round(float(obs["robot_node"][0][0][3]), 2), round(float(obs["robot_node"][0][0][4]), 2)]
+                    [
+                        round(float(obs["robot_node"][0][0][0]), 2),
+                        round(float(obs["robot_node"][0][0][1]), 2),
+                    ],
+                    [
+                        round(float(obs["robot_node"][0][0][3]), 2),
+                        round(float(obs["robot_node"][0][0][4]), 2),
+                    ],
                 )
 
                 # print(prompt)

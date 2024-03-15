@@ -41,15 +41,14 @@ Decision Guidelines:
 
 Respond with 'Stay: True' or 'Stay: False' based on these criteria, ensuring the robot's safety while minimizing the risk of collision."
 Explain for your self but do not generate me any more information except {Stay: Ture} or {Stay: False}
+be a little more sensetive.
         """
         response = self.client.chat.completions.create(
-            # model="gpt-4-turbo-preview",
+            # model="gpt-4",
             model="gpt-3.5-turbo",
             # response_format={"type": "json_object"},
             messages=[
-                {
-                    "role": "system",
-                    "content": text},
+                {"role": "system", "content": text},
                 {"role": "user", "content": prompt},
             ],
         )
@@ -61,20 +60,20 @@ Explain for your self but do not generate me any more information except {Stay: 
         def get_collision_status(match):
             if match:
                 # Extract the boolean value and convert it to a proper boolean type
-                return match.group(1).lower() == 'true'
+                return match.group(1).lower() == "true"
             else:
                 # Handle cases where no match is found
                 return None
 
         # Regular expression to match 'True' or 'False' in the text, accounting for different cases
-        pattern = r'\b(True|False|true|false|Ture|ture)\b'
+        pattern = r"\b(True|False|true|false|Ture|ture)\b"
 
         # Search for the pattern in the response
         match = re.search(pattern, api_response, re.IGNORECASE)
 
         # Check if we found a match
         # Extract the boolean value and convert it to proper boolean type
-        collision_status = match.group().lower() == 'true'
+        collision_status = match.group().lower() == "true"
         print(f"Collision status: {collision_status}")
 
         return collision_status

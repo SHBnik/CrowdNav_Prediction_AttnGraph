@@ -3,6 +3,7 @@ import numpy as np
 
 from crowd_sim.envs.crowd_sim_pred import CrowdSimPred
 
+
 class CrowdSimPredRealGST(CrowdSimPred):
     """
     Same as CrowdSimPred, except that
@@ -139,7 +140,7 @@ class CrowdSimPredRealGST(CrowdSimPred):
         )
         return reward, done, episode_info
 
-    def render(self, mode="human"):
+    def render(self, PF_direction, mode="human"):
         """
         render function
         use talk2env to plot the predicted future traj of humans
@@ -344,6 +345,24 @@ class CrowdSimPredRealGST(CrowdSimPred):
                     # )
                     ax.add_artist(circle)
                     artists.append(circle)
+
+        # Convert angle from degrees to radians
+        angle_rad = np.radians(PF_direction[0])
+
+        # Calculate the end point of the arrow
+        end_x = robotX + 0.6 * np.cos(angle_rad)
+        end_y = robotY + 0.6 * np.sin(angle_rad)
+        arrow = plt.arrow(
+            robotX,
+            robotY,
+            end_x - robotX,
+            end_y - robotY,
+            head_width=0.05 * 0.8,
+            head_length=0.1 * 0.8,
+            fc="green" if PF_direction[1] else "orange",
+            ec="green" if PF_direction[1] else "orange",
+        )
+        artists.append(arrow)
 
         # plt.savefig(f"framePlotsNormal/frame_{self.i_frame}.png")
         # self.i_frame = self.i_frame + 1
